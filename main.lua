@@ -1,11 +1,12 @@
-----------------------------------------------
---PROJECT: AKTWEEN
---AUTHOR: OMID AHOURAI, ARDENTKID
+----------------------------------------------------------------------------
+--PROJECT: AKTWEEN BENCHMARK APP
+--AUTHOR: ARDENTKID (OMID AHOURAI)
+--http://www.ardentkid.com
 --
---THIS LIBRARY IS FREE TO USE AND DISTRIBUTE 
+--THIS APP IS FREE TO USE AND DISTRIBUTE 
 --WITHOUT CHARGE, AS LONG AS THESE COMMENTS
 --REMAIN. COPYRIGHT 2012. ALL RIGHTS RESERVED.
-----------------------------------------------
+----------------------------------------------------------------------------
 
 display.setStatusBar( display.HiddenStatusBar )
 io.output():setvbuf('no') -- show print commands on iphone console

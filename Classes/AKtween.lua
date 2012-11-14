@@ -1,4 +1,4 @@
-----------------------------------------------
+----------------------------------------------------------------------------
 --PROJECT: AKTWEEN
 --AUTHOR: ARDENTKID (OMID AHOURAI)
 --http://www.ardentkid.com
@@ -6,7 +6,9 @@
 --THIS LIBRARY IS FREE TO USE AND DISTRIBUTE 
 --WITHOUT CHARGE, AS LONG AS THESE COMMENTS
 --REMAIN. COPYRIGHT 2012. ALL RIGHTS RESERVED.
-----------------------------------------------
+--
+--Easing functions adapted from Robert Penner's AS3 tweening equations.
+----------------------------------------------------------------------------
 
 local AKtween={
 	pauseAll = false
