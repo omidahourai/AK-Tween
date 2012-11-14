@@ -9,10 +9,13 @@
 ----------------------------------------------------------------------------
 
 local scene = scene
-if (scene.particles) then return scene.particles end
+if (scene.Particles) then return scene.Particles end
 
-local particles={}
-particles.scene = scene
+local Particles={
+	instances = {},
+	scene = scene,
+	disp = scene
+}
 
 local AKtween = require('Classes.AKtween')
 local dH = scene.dH
@@ -21,80 +24,77 @@ local mRand = mt.random
 
 --RANDOM ARRAYS
 local xStart, xEnd, yStart, yEnd = -sW, sW, sH*1.5, sH*.25
-local xvalArr={}; for i=1,5000 do table.insert(xvalArr, mRand(xStart,xEnd)) end
-local yvalArr={}; for i=1,5000 do table.insert(yvalArr, mRand(yEnd,yStart)) end
+local xvalArr={}; for i=1,1000 do table.insert(xvalArr, mRand(xStart,xEnd)) end
+local yvalArr={}; for i=1,1000 do table.insert(yvalArr, mRand(yEnd,yStart)) end
 
 local classTweens = AKtween:create('test')
-local T_particle = AKtween:newTween()
+-- local T_particle = AKtween:newTween()
 
 local yMid, yEnd = -dH*.75, 0
 for i=1,25 do 
 	local xEnd = table.remove(xvalArr,1); table.insert(xvalArr,xEnd)
 	T_particle:subscribe('anim'..i, {time=5000, y=yMid, ease='outQuad', onComplete={time=5000, y=yEnd, ease='inQuad'}})
 	T_particle:subscribe('anim'..i, {time=10000, x=xEnd})
-	local T_particle = AKtween:newTween({time=5000, y=yMid, ease='outQuad', onComplete={time=5000, y=yEnd, ease='inQuad'}})
-	T_particle:append({time=10000, x=xEnd})
+	-- local T_particle = AKtween:newTween({time=5000, y=yMid, ease='outQuad', onComplete={time=5000, y=yEnd, ease='inQuad'}})
+	-- T_particle:append({time=10000, x=xEnd})
 end
 
-local animCount = 1
+function Particles:new()
+	local radius = mRand(4,9)
+	local particle = display.newCircle(0,0,radius)
+	particle.strokeWidth = radius*.2
+	particle.isVisible = false
 
-function particles:get()
-	local scene = self.scene
-	local particle
-	if (self[1]) then particle = table.remove(self, 1)
-	else 
-		local rad = table.remove(self.radArr, 1); table.insert(self.radArr, rad)
-		particle = self.class(rad)
-	end
-	particle.isVisible=true
+	local r=m.random(195,205)
+	local g=m.random(165,175)
+	local b=m.random(115,125)
+	particle.transitions = {cr=r, cg=g, cb=b}
+
+	local r=m.random(120,130)
+	local g=m.random(140,150)
+	local b=m.random(200,255)
+	particle.tableValues = {cr=r, cg=g, cb=b}
 
 	local xEnd = table.remove(xvalArr,1); table.insert(xvalArr,xEnd)
-	xEnd = scene.sW + xEnd
-	particle.xEnd = xEnd
+	particle.xEnd, particle.yEnd = sW + xEnd, dH
+	particle.yMid = dH*0.25
+	particle.animCt = m.random(1,25)
+	
+	T_particle:apply(particle)
 
-	scene:dispatchEvent({name='addParticle'})
+	function partcle:show()
+		particle.isVisible = true
+		particle.x, particle.y = sW, dH
+		scene:dispatchEvent({name='addParticle'})
+	end
+
+	function particle:dispose() Particles:dispose(self) end
+	particle.Class = self
+	table.insert(self.instances, particle)
 	return particle
 end
 
-function particles:dispose(particle)
+function Particles:dispose(particle)
 	particle.isVisible=false
 	table.insert(self, particle)
 	scene:dispatchEvent({name='disposeParticle'})
 end
 
-local function newParticle(radius)
-	local m=math
-	local particle = display.newCircle(0,0,radius)
-		particle.strokeWidth = radius*.2
-		particle.isVisible = false
-
-		local r=m.random(195,205)
-		local g=m.random(165,175)
-		local b=m.random(115,125)
-		particle.transitions = {cr=r, cg=g, cb=b}
-
-		local r=m.random(120,130)
-		local g=m.random(140,150)
-		local b=m.random(200,255)
-		particle.tableValues = {cr=r, cg=g, cb=b}
-
-		local xEnd = table.remove(xvalArr,1); table.insert(xvalArr,xEnd)
-		particle.xEnd, particle.yEnd = xEnd, dH
-		particle.yMid = dH*0.25
-		particle.animCt = m.random(1,25)
-	return particle
+function Particles:get()
+	local instances = self.instances
+	if (not instances[1]) then self:new() end
+	return table.remove(instances, 1)
 end
 
-particles.class = newParticle
-local radArr={}; for i=1,10 do table.insert(radArr, math.random(4,9)) end
-for i=1,700 do
-	local rad = radArr[math.random(1,10)]
-	local particle = newParticle(rad)
-	T_particle:apply(particle)
-	table.insert(particles, particle)
+function Particles:dispose(obj)
+	table.insert(self.instances, obj)
+	print(#self.instances)
 end
-particles.scene = scene
-particles.disp = scene
-particles.radArr = radArr
 
-return particles
+function Particles:show(config)
+	local obj = self:get()
+	obj:show(config)
+	return obj
+end
+
+return Particles

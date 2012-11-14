@@ -10,6 +10,9 @@
 --Easing functions adapted from Robert Penner's AS3 tweening equations.
 ----------------------------------------------------------------------------
 
+local scene = scene
+if (scene.AKtween) then return scene.AKtween end
+
 local AKtween={
 	pauseAll = false
 }
