@@ -22,7 +22,7 @@ function game:createScene( event )
 	--CREATE TWEEN OBJ
 	AKtween = require('Classes.AKtween')
 	scene.AKtween = AKtween
-	
+
 	local Hud = require('Classes.Hud')
 	scene.Hud = Hud
 

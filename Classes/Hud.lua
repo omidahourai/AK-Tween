@@ -9,7 +9,6 @@
 ----------------------------------------------------------------------------
 
 local scene = scene
-if (scene.Hud) then return scene.Hud end
 local dH, sH, dW, sW = scene.dH, scene.sH, scene.dW, scene.sW
 
 Hud = display.newGroup()

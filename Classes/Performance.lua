@@ -8,9 +8,7 @@
 --REMAIN. COPYRIGHT 2012. ALL RIGHTS RESERVED.
 ----------------------------------------------------------------------------
 
-
 local scene = scene
-if (scene.Performance) then return scene.Performance end
 
 local Performance = display.newGroup()
 Performance.scene = scene

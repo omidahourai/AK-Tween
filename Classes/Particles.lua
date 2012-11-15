@@ -9,8 +9,6 @@
 ----------------------------------------------------------------------------
 
 local scene = scene
-if (scene.Particles) then return scene.Particles end
-local AKtween = scene.AKtween or require('Classes.AKtween')
 
 local Particles={
 	instances = {},
