@@ -10,6 +10,7 @@
 
 local scene = scene
 if (scene.Particles) then return scene.Particles end
+local AKtween = scene.AKtween or require('Classes.AKtween')
 
 local Particles={
 	instances = {},
@@ -17,26 +18,25 @@ local Particles={
 	disp = scene
 }
 
-local AKtween = require('Classes.AKtween')
-local dH = scene.dH
 local mt = math
 local mRand = mt.random
+local dW, dH, sW, sH = scene.dW, scene.dH, scene.sW, scene.sH
+local transition = transition
+local easing = easing
 
 --RANDOM ARRAYS
 local xStart, xEnd, yStart, yEnd = -sW, sW, sH*1.5, sH*.25
-local xvalArr={}; for i=1,1000 do table.insert(xvalArr, mRand(xStart,xEnd)) end
-local yvalArr={}; for i=1,1000 do table.insert(yvalArr, mRand(yEnd,yStart)) end
+local xvalArr={}; for i=1,500 do table.insert(xvalArr, mRand(xStart,xEnd)) end
+local yvalArr={}; for i=1,500 do table.insert(yvalArr, mRand(yEnd,yStart)) end
 
-local classTweens = AKtween:create('test')
--- local T_particle = AKtween:newTween()
-
-local yMid, yEnd = -dH*.75, 0
+--CREATE 25 PRE-DETERMINED TWEENS AND STORE THEM INTO OUR ARRAY
+local tweenArr = {}
+local yEnd = -dH*.75
 for i=1,25 do 
 	local xEnd = table.remove(xvalArr,1); table.insert(xvalArr,xEnd)
-	T_particle:subscribe('anim'..i, {time=5000, y=yMid, ease='outQuad', onComplete={time=5000, y=yEnd, ease='inQuad'}})
-	T_particle:subscribe('anim'..i, {time=10000, x=xEnd})
-	-- local T_particle = AKtween:newTween({time=5000, y=yMid, ease='outQuad', onComplete={time=5000, y=yEnd, ease='inQuad'}})
-	-- T_particle:append({time=10000, x=xEnd})
+	local tween = AKtween:newTween({time=5000, y=yEnd, ease='outQuad', onComplete={time=5000, y=-yEnd, ease='inQuad'}})
+	tween:append({time=10000, x=xEnd})
+	table.insert(tweenArr, tween)
 end
 
 function Particles:new()
@@ -45,29 +45,22 @@ function Particles:new()
 	particle.strokeWidth = radius*.2
 	particle.isVisible = false
 
-	local r=m.random(195,205)
-	local g=m.random(165,175)
-	local b=m.random(115,125)
-	particle.transitions = {cr=r, cg=g, cb=b}
+	particle.cr=mRand(195,205)
+	particle.cg=mRand(165,175)
+	particle.cb=mRand(115,125)
 
-	local r=m.random(120,130)
-	local g=m.random(140,150)
-	local b=m.random(200,255)
-	particle.tableValues = {cr=r, cg=g, cb=b}
+	particle.gr=mRand(120,130)
+	particle.gg=mRand(140,150)
+	particle.gb=mRand(200,255)
 
 	local xEnd = table.remove(xvalArr,1); table.insert(xvalArr,xEnd)
 	particle.xEnd, particle.yEnd = sW + xEnd, dH
 	particle.yMid = dH*0.25
-	particle.animCt = m.random(1,25)
 	
-	T_particle:apply(particle)
+	local tween = table.remove(tweenArr,1); table.insert(tweenArr, tween)
+	tween:apply(particle, 'moveAnim')
 
-	function partcle:show()
-		particle.isVisible = true
-		particle.x, particle.y = sW, dH
-		scene:dispatchEvent({name='addParticle'})
-	end
-
+	particle.show = self.show
 	function particle:dispose() Particles:dispose(self) end
 	particle.Class = self
 	table.insert(self.instances, particle)
@@ -80,21 +73,43 @@ function Particles:dispose(particle)
 	scene:dispatchEvent({name='disposeParticle'})
 end
 
-function Particles:get()
+function Particles:get(color)
 	local instances = self.instances
-	if (not instances[1]) then self:new() end
-	return table.remove(instances, 1)
+	local particle
+	if (instances[1]) then particle = table.remove(instances, 1)
+	else particle = self:new() end
+	return particle
 end
 
-function Particles:dispose(obj)
-	table.insert(self.instances, obj)
-	print(#self.instances)
+function Particles:dispose(particle)
+	table.insert(self.instances, particle)
 end
 
-function Particles:show(config)
-	local obj = self:get()
-	obj:show(config)
-	return obj
+scene:addEventListener('showParticle', Particles)
+function Particles:showParticle(color)
+	local particle = self:get()
+	particle:show(color)
+	return particle
 end
+
+function Particles:show(type)
+	self.isVisible = true
+	self.x, self.y = sW, dH
+
+	if (type=='transitions') then
+		local t, t2 = 5000, 10000
+		self:setFillColor(self.cr, self.cg, self.cb)
+		self.tweenFC = transition.to(self, {time=t2, x=self.xEnd})
+		self.tweenFC = transition.to(self, {time=t, y=self.yMid, transition=easing.outQuad, onComplete=function()
+			self.tweenFC = transition.to(self, {time=t, y=self.yEnd, transition=easing.inQuad, onComplete=function()
+				self:dispose()
+			end})
+		end})
+	elseif (type=='tableValues') then
+		self:setFillColor(self.gr, self.gg, self.gb)
+		self:playTween('moveAnim', {onComplete=function() self:dispose() end})
+	end
+end
+
 
 return Particles

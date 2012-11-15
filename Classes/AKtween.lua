@@ -1,5 +1,5 @@
 ----------------------------------------------------------------------------
---PROJECT: AKTWEEN
+--PROJECT: AKTWEEN v0.4
 --AUTHOR: ARDENTKID (OMID AHOURAI)
 --http://www.ardentkid.com
 --
@@ -9,15 +9,26 @@
 --
 --Easing functions adapted from Robert Penner's AS3 tweening equations.
 ----------------------------------------------------------------------------
-
-local scene = scene
-if (scene.AKtween) then return scene.AKtween end
+--
+--TODO (AS OF 11/14/2012):
+--
+--ADD IN-OUT-QUAD EASING
+--ADD DELAY PARAMETERS
+--ADD BOUNCING/ REFLECT
+--ADD TWEEN LOOPING
+--ADD PROPER DESTROY FUNCTIONS
+--alpha={start, finish}
+--xScale={start, finish}
+--yScale={start, finish}
+----------------------------------------------------------------------------
 
 local AKtween={
-	pauseAll = false
+	pauseAll = false,
+	registered = {},
+	unregister = {}
 }
 
-local function calcArr(arr, accumulative, time, to, totFrames, step, ease, from)
+local function calcArr(arr, accumulative, time, to, totFrames, step, ease, from, nonZero)
 	local ct = #arr
 	local startArr
 	if (ct>0) then startArr,from = ct,arr[ct] else startArr,from = 0,from or 0 end
@@ -30,33 +41,26 @@ local function calcArr(arr, accumulative, time, to, totFrames, step, ease, from)
 				pos = pos + step
 				local index = i +startArr
 				local ratio = -pos*(pos-2)
-				arr[index] = from + (ratio * delta)
-				-- print('values['..index..'] = '..arr[index])
+				local result = from + (ratio * delta)
+				if (nonZero) then if (result == 0) then result = 0.001 end end
+				arr[index] = result
 			end
 		elseif (ease == 'inQuad') then
 			for i=1,totFrames do
 				pos = pos + step
 				local index = i +startArr
 				local ratio = pos*pos
-				arr[index] = from + (ratio * delta)
-				-- print('values['..index..'] = '..arr[index])
+				local result = from + (ratio * delta)
+				if (nonZero) then if (result == 0) then result = 0.001 end end
+				arr[index] = result
 			end
-		elseif (ease == 'inOutQuad') then
+		elseif ((ease == 'linear') or (not ease)) then
 			for i=1,totFrames do
 				pos = pos + step
 				local index = i +startArr
-				local ratio
-				if pos < 0.5 then ratio = 2*pos*pos
-				else ratio = -2*pos*(pos-2)-1 end
-				arr[index] = from + (ratio * delta)
-				-- print('values['..index..'] = '..arr[index])
-			end
-		elseif (not ease) then
-			for i=1,totFrames do
-				pos = pos + step
-				local index = i +startArr
-				arr[index] = from + (pos * delta)
-				-- print('values['..index..'] = '..arr[index])
+				local result = from + (pos * delta)
+				if (nonZero) then if (result == 0) then result = 0.001 end end
+				arr[index] = result
 			end
 		end	
 	else
@@ -68,7 +72,6 @@ local function calcArr(arr, accumulative, time, to, totFrames, step, ease, from)
 				local index = i +startArr
 				local ratio = -2*(pos -1)
 				arr[index] = -ratio *2.5
-				-- print('outQuad values['..index..'] = '..arr[index])
 			end
 		elseif (ease == 'inQuad') then
 			for i=1,totFrames do
@@ -76,32 +79,19 @@ local function calcArr(arr, accumulative, time, to, totFrames, step, ease, from)
 				local index = i +startArr
 				local ratio = 2*pos
 				arr[index] = ratio *2.5
-				-- print('inQuad values['..index..'] = '..arr[index])
 			end
-		elseif (ease == 'inOutQuad') then
-			for i=1,totFrames do
-				pos = pos + step
-				local index = i +startArr
-				local ratio
-				if pos < 0.5 then ratio = 2*pos*pos
-				else ratio = -2*pos*(pos-2)-1 end
-				arr[index] = from + (ratio * delta)
-				-- print('values['..index..'] = '..arr[index])
-			end
-		elseif (not ease) then
+		elseif ((ease == 'linear') or (not ease)) then
 			local val = step * delta
 			for i=1,totFrames do
 				local index = i +startArr
 				arr[index] = val
-				-- print('noEase values['..index..'] = '..arr[index])
 			end
 		end	
 	end
 end
 
-local function tweenCalc(config, anim)
-	if (not anim) then anim = {} end
-	local arr = anim.arr or {}
+local function tweenCalc(config, arr)
+	if (not arr) then arr = {} end
 	-- if (not arr) then arr = {} end
 
 	local time = config.time or 1000
@@ -134,21 +124,21 @@ local function tweenCalc(config, anim)
 	local xScale = config.xScale
 	if (xScale) then 
 		local xSclArr = arr.xScale or {}
-		calcArr(xSclArr, true, time, xScale, totFrames, step, ease, 1)
+		calcArr(xSclArr, true, time, xScale, totFrames, step, ease, 1, true)
 		arr.xScale = xSclArr
 	end
 
 	local yScale = config.yScale
 	if (yScale) then 
 		local ySclArr = arr.yScale or {}
-		calcArr(ySclArr, true, time, yScale, totFrames, step, ease, 1)
+		calcArr(ySclArr, true, time, yScale, totFrames, step, ease, 1, true)
 		arr.yScale = ySclArr
 	end
 
 	local alpha = config.alpha
 	if (alpha) then 
 		local alphaArr = arr.alpha or {}
-		calcArr(alphaArr, true, time, alpha, totFrames, step, ease)
+		calcArr(alphaArr, true, time, alpha, totFrames, step, ease, 1)
 		arr.alpha = alphaArr
 	end
 
@@ -158,109 +148,85 @@ local function tweenCalc(config, anim)
 		if (tot > totFrames) then totFrames = tot end
 	end
 
-	anim.totFrames = totFrames
-	anim.arr = arr
+	-- anim.totFrames = totFrames
+	-- anim.arr = arr
 
 	local onComplete = config.onComplete
-	if (onComplete) then tweenCalc(onComplete, anim) end
+	if (onComplete) then arr, totFrames = tweenCalc(onComplete, arr) end
 
-	return anim
+	return arr, totFrames
 end
+
 
 function AKtween:enterFrame(event)
 	if (not self.pauseAll) then
-		for i=1,#self do
-			local obj = self[i]
+		local registered = self.registered
+		local unregister = self.unregister
+
+		for i=1,#registered do
+			local obj = registered[i]
 			local curTween = obj.curTween
 			if (curTween) then
 				local tot = obj.tweenTot
-				local ct = obj.tweenCount +1
-				if (ct > tot) then
-					if (obj.tweenRepeat) then ct =1
-					else obj:finishTween() end
-				end
+				local ct = obj.tweenCount
+
 				for k,v in pairs(curTween) do
 					local value = v[ct]
 					if (value) then
 						if (k == 'x') then obj:translate(value,0)
 						elseif (k == 'y') then obj:translate(0,value)
+						elseif (k == 'rotation') then obj:rotate(value)
 						else obj[k] = value end
 					end
+				end
+				ct = ct +1
+				if (ct > tot) then 
+					if (obj.tweenRepeat) then ct = 1
+					else table.insert(unregister, obj) end
 				end
 				obj.tweenCount = ct
 			end
 		end
-	end
-end
 
-function AKtween:create(name) --AKtween[name] = group
-	local class = self[name]
-	if (not class) then
-		class = {}
-		class.name = name
-		class.parts = {} --contains parts data
-		class.objs = self
-		self[name] = class
-
-		function class:newPart(obj, group)
-			local part = {}
-			part.anims = {}
-			part.objs = self.objs
-
-			function part:apply(obj, group)
-				obj.curTween = nil
-				obj.anims = self.anims
-				obj.playTween = AKtween.playTween
-				obj.finishTween = AKtween.finishTween
-
-				table.insert(AKtween.objs, obj)
-			end
-
-			function part:subscribe(name, config)
-				--NEED WAY TO NOT OVERRIDE ANIMS
-				local anims = self.anims
-				local anim = anims[name]
-				anims[name] = tweenCalc(config, anim)
-			end
-
-			table.insert(self.parts, part)
-			return part
+		for i=1,#unregister do
+			local obj = unregister[i]
+			obj:finishTween()
 		end
-
 	end
-
-	return class
 end
-
-AKtween.anims = {}
 
 function AKtween:newTween(config)
 	local tween = {}
-	local anims = self.anims
-
-	function tween:apply(obj, group)
-		obj.curTween = nil
-		obj.anims = self.anims
-		obj.playTween = AKtween.playTween
-		obj.finishTween = AKtween.finishTween
-
-		table.insert(AKtween.objs, obj)
-	end
-
-	function tween:append(config)
-		if (config) then tweenCount(config, self)
-		else print('AKtween: Tween configuration failed.') end
-	end
-
+	tween.apply = self.apply
+	tween.append = self.append
 	tween:append(config)
 	return tween
+end
+
+function AKtween:append(config)
+	if (config) then 
+		local values, totFrames = tweenCalc(config, self.values)
+		self.values, self.totFrames = values, totFrames
+	else print('AKtween: Tween configuration failed.') end
+end
+
+function AKtween:apply(obj, name)
+	obj.curTween = nil
+	local anims = obj.anims or {}
+	local anim = anims[name] or {}
+	anim.values = self.values
+	anim.totFrames = self.totFrames
+	anims[name] = anim
+	obj.anims = anims
+	obj.playTween = AKtween.playTween
+	obj.finishTween = AKtween.finishTween
 end
 
 function AKtween:playTween(name, config)
 	local anim = self.anims[name]
 	if (anim) then 
-		self.curTween = anim.arr
-		self.tweenCount = 0
+		self.curTween = anim.values
+		self.tweenCount = 1
 		self.tweenTot = anim.totFrames
 		if (config) then
 			self.tweenRepeat = config.repeats
@@ -269,12 +235,15 @@ function AKtween:playTween(name, config)
 			self.tweenRepeat = nil
 			self.onComplete = nil
 		end
-	end
+		table.insert(AKtween.registered, self)
+	else print('AKtween: object tween '..name..' does not exist') end
 end
 
 function AKtween:finishTween()
 	self.curTween = nil
-	self.tweenCount = 0
+	self.tweenCount = 1
+	table.remove(AKtween.registered, table.indexOf(AKtween.registered, self))
+	table.remove(AKtween.unregister, table.indexOf(AKtween.unregister, self))
 	if (self.onComplete) then self.onComplete() end
 end
 

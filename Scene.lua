@@ -30,52 +30,25 @@ function game:createScene( event )
 	scene.Particles = Particles
 	for i=1,700 do Particles:new() end
 
-	function scene:tweenIt(p)
-		local scene = self.scene
-		local dW, dH, sW, sH = scene.dW, scene.dH, scene.sW, scene.sH
-		local particles = scene.particles
-		local t, t2 = 5000, 10000
-		local transition = transition
-		local easing = easing
-		local type = self.type
-		p.x, p.y = sW,dH
-		local xEnd = p.xEnd
-
-		if (type=='transitions') then
-			local yMid, yEnd = p.yMid, p.yEnd
-			p.tweenFC = transition.to(p, {time=t2, x=xEnd})
-			p.tweenFC = transition.to(p, {time=t, y=yMid, transition=easing.outQuad, onComplete=function()
-				p.tweenFC = transition.to(p, {time=t, y=yEnd, transition=easing.inQuad, onComplete=function()
-					particles:dispose(p)
-				end})
-			end})
-		elseif (type=='tableValues') then
-			p:playTween('anim'..p.animCt, {onComplete=function() particles:dispose(p) end})
-		end
-	end
-
-	scene:addEventListener('pickTweenType', scene)
-	function scene:pickTweenType(event)
-		self.type = event.type
-	end
-
+	--PARTICLE SPAWN RUNTIME
 	scene:addEventListener('start', scene)
 	function scene:start(event)
-		local scene = self.scene
-		local particles = scene.particles
-
-		scene:dispatchEvent({name='pickTweenType', type=event.type})
+		local particles = self.Particles
+		self.type = event.type
 
 		local function frameCount()
-			local particle = particles:get()
-			local colors = particle[self.type]
-			particle:setFillColor(colors.cr,colors.cg,colors.cb)
-			self:tweenIt(particle)
+			self:dispatchEvent({name='showParticle', type=self.type})
+			local particle = Particles:showParticle(self.type)
 		end
 
 		self.isActive = true
 		self.runtimeFC = frameCount
 		Runtime:addEventListener('enterFrame', frameCount)
+	end
+
+	scene:addEventListener('pickTweenType', scene)
+	function scene:pickTweenType(event)
+		self.type = event.type
 	end
 
 	scene:addEventListener('stop', scene)
@@ -88,7 +61,6 @@ end
 
 function game:willEnterScene()
 	local scene = self.view
-
 end
 
 function game:enterScene( event )	

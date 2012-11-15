@@ -89,8 +89,8 @@ tableBtn.type = 'tableValues'
 tableBtn.rotation = 90
 table.insert(typeBtns, tableBtn)
 
-scene:addEventListener('addParticle', Hud)
-function Hud:addParticle(event)
+scene:addEventListener('showParticle', Hud)
+function Hud:showParticle(event)
 	local counter = self.counter
 	counter.text = counter.text+1
 end
