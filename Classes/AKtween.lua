@@ -143,10 +143,10 @@ local function tweenCalc(config, arr)
 	end
 
 	local xTot, yTot, rotTot, xSclTot, ySclTot, aTot
-	for i=1,#arr do
-		local tot = #arr[i]
-		if (tot > totFrames) then totFrames = tot end
-	end
+    for k,v in pairs(arr) do
+        local tot = #v
+        if (tot > totFrames) then totFrames = tot end
+    end
 
 	-- anim.totFrames = totFrames
 	-- anim.arr = arr
