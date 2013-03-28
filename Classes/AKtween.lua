@@ -124,14 +124,22 @@ local function tweenCalc(config, arr)
 	local xScale = config.xScale
 	if (xScale) then 
 		local xSclArr = arr.xScale or {}
-		calcArr(xSclArr, true, time, xScale, totFrames, step, ease, 1, true)
+        if (type(xScale) == "table") then
+            calcArr(xSclArr, true, time, xScale.to, totFrames, step, ease, xScale.from, true)
+        else
+		    calcArr(xSclArr, true, time, xScale, totFrames, step, ease, 1, true)
+        end
 		arr.xScale = xSclArr
 	end
 
 	local yScale = config.yScale
 	if (yScale) then 
 		local ySclArr = arr.yScale or {}
-		calcArr(ySclArr, true, time, yScale, totFrames, step, ease, 1, true)
+        if (type(yScale) == "table") then
+            calcArr(ySclArr, true, time, yScale.to, totFrames, step, ease, yScale.from, true)
+        else
+		    calcArr(ySclArr, true, time, yScale, totFrames, step, ease, 1, true)
+        end
 		arr.yScale = ySclArr
 	end
 
